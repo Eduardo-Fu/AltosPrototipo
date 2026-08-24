@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity ERP | Los Altos</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top right, #1a0b2e 0%, #020005 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .antigravity { animation: float 6s ease-in-out infinite; }
+        .antigravity-delayed-1 { animation: float 6s ease-in-out infinite; animation-delay: 1.5s; }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0px); }
+        }
+        .particle {
+            position: absolute;
+            background: rgba(138, 43, 226, 0.4);
+            border-radius: 50%;
+            animation: rise infinite linear;
+            pointer-events: none;
+            z-index: 0;
+        }
+        @keyframes rise {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            20% { opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+        .view-transition { transition: opacity 0.5s ease, transform 0.5s ease; }
+        .hidden-view { opacity: 0; pointer-events: none; position: absolute; transform: scale(0.95); z-index: -1; }
+        .active-view { opacity: 1; pointer-events: all; position: relative; transform: scale(1); z-index: 10; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.5); }
+        
+        .nav-item { 
+            padding: 12px 16px; border-radius: 14px; color: #cbd5e1; font-size: 0.95rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;
+            display: flex; align-items: center; gap: 12px; font-weight: 500;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; transform: translateX(5px); }
+        .nav-item.active { 
+            background: linear-gradient(90deg, rgba(168,85,247,0.2) 0%, transparent 100%); 
+            color: white; border-left: 4px solid #a855f7; font-weight: 700;
+        }
+        .nav-item.active svg { transform: scale(1.1); color: #a855f7; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-8 relative">
+
+    <div id="particles" class="fixed inset-0 z-0"></div>
+
+    <div class="relative z-10 w-full max-w-6xl h-full flex items-center justify-center">
+        <!-- MODAL -->
+        <div id="custom-modal" class="hidden-view fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm">
+            <div class="glass p-8 rounded-3xl max-w-sm w-full text-center transform transition-transform scale-95" id="modal-content">
+                <div class="w-16 h-16 mx-auto bg-gradient-to-tr from-purple-500 to-blue-500 rounded-full flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(138,43,226,0.5)]">
+                    <svg id="modal-icon" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <h3 id="modal-title" class="text-2xl font-bold mb-2">Mensaje</h3>
+                <p id="modal-message" class="text-gray-300 text-sm mb-6">Operación realizada.</p>
+                <button id="close-modal-btn" class="w-full bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-xl transition duration-300">Aceptar</button>
+            </div>
+        </div>
+
+        <div id="login-view" class="view-transition active-view glass p-10 rounded-3xl w-full max-w-md flex flex-col items-center antigravity text-center">
+            <div class="w-16 h-16 bg-gradient-to-tr from-purple-600 to-blue-500 rounded-full mb-6 flex items-center justify-center shadow-[0_0_20px_rgba(138,43,226,0.5)]">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <h1 class="text-3xl font-bold mb-2">Comercializadora Los Altos</h1>
+            <p class="text-gray-400 mb-8 text-sm">ERP Integrado a Supabase</p>
+            
+            <button id="google-login-btn" class="w-full bg-white text-gray-900 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-100 transition duration-300 transform hover:scale-105 shadow-lg">
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span id="login-text">Acceder al Sistema</span>
+            </button>
+            <p id="auth-warning" class="text-xs text-yellow-500 mt-4 hidden">Necesitas configurar tus credenciales de Supabase en el código para iniciar sesión.</p>
+        </div>
+
+        <div id="dashboard-view" class="view-transition hidden-view w-full h-[90vh] flex flex-col md:flex-row gap-6">
+            <aside class="glass rounded-3xl w-full md:w-72 p-6 flex flex-col antigravity-delayed-1 h-full z-20">
+                <div class="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+                    <div class="w-12 h-12 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-xl shadow-[0_0_15px_rgba(168,85,247,0.4)]" id="user-avatar">LA</div>
+                    <div>
+                        <span class="font-semibold block truncate w-40" id="user-name">Usuario</span>
+                        <select id="role-selector" class="text-xs bg-black/30 text-purple-300 border border-purple-500/30 rounded px-1 py-1 mt-1 outline-none w-full cursor-pointer">
+                            <option value="admin">Rol: Administrador</option>
+                            <option value="colocadora">Rol: Colocadora</option>
+                            <option value="empresa">Rol: Empresa Cliente</option>
+                        </select>
+                    </div>
+                </div>
+                <nav class="flex-1 flex flex-col gap-2 overflow-y-auto pr-2 custom-scrollbar" id="nav-menu"></nav>
+                <div class="mt-4 pt-4 border-t border-white/10">
+                    <button id="logout-btn" class="w-full py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 transition duration-300 text-sm font-semibold flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </aside>
+
+            <main class="flex-1 glass rounded-3xl p-6 md:p-8 overflow-y-auto relative h-full">
+                <header class="mb-8 flex justify-between items-center border-b border-white/10 pb-6">
+                    <div>
+                        <h2 class="text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-300" id="section-title">Cargando...</h2>
+                        <p class="text-gray-400 text-sm mt-1" id="section-desc">Inicializando módulos</p>
+                    </div>
+                </header>
+
+                <!-- Módulo: Inventario -->
+                <section id="sec-inventario" class="app-section hidden">
+                    <form id="form-inventario" class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+                        <div class="space-y-1">
+                            <label class="text-sm text-purple-300 font-semibold">Colocadora ID (Temporal UI)</label>
+                            <input id="inv-colocadora" type="text" placeholder="ID de colocadora" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-purple-500 outline-none transition" required>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-sm text-purple-300 font-semibold">Tienda ID</label>
+                            <input id="inv-tienda" type="text" placeholder="ID de tienda" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-purple-500 outline-none transition" required>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-sm text-purple-300 font-semibold">Producto ID</label>
+                            <input id="inv-producto" type="text" placeholder="ID del producto" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-purple-500 outline-none transition" required>
+                        </div>
+                        
+                        <div class="space-y-1 md:col-span-2">
+                            <label class="text-sm text-purple-300 font-semibold">Inventario en Tienda (Cantidad)</label>
+                            <input id="inv-cantidad" type="number" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, ''); if(this.value.length > 1 && this.value.startsWith('0')) this.value = this.value.replace(/^0+/, '') || '0';" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white focus:border-purple-500 outline-none text-3xl font-bold font-mono tracking-wider" placeholder="Ej: 15" required>
+                            <p class="text-xs text-gray-400 mt-2">Validación estricta activada: Solo números. Sin "00". >= 0.</p>
+                        </div>
+                        <button type="submit" id="btn-save-inv" class="md:col-span-2 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 text-white font-bold py-4 px-6 rounded-xl shadow-[0_0_25px_rgba(138,43,226,0.4)] transition mt-2 text-lg">
+                            Guardar en Supabase
+                        </button>
+                    </form>
+                </section>
+
+                <!-- Módulo: RRHH -->
+                <section id="sec-rrhh" class="app-section hidden">
+                    <div class="bg-white/5 p-6 rounded-3xl border border-white/10 max-w-2xl">
+                        <h3 class="text-xl font-bold mb-6 text-green-400">Nueva Contratación</h3>
+                        <form id="form-rrhh-alta" class="space-y-4">
+                            <input id="rh-nombre" type="text" placeholder="Nombre completo" required class="w-full bg-black/40 border border-white/10 rounded-xl p-3 outline-none focus:border-green-500">
+                            <input id="rh-dpi" type="text" placeholder="DPI (Solo números)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required class="w-full bg-black/40 border border-white/10 rounded-xl p-3 outline-none focus:border-green-500">
+                            <textarea id="rh-tiendas" placeholder="Tiendas Asignadas" required class="w-full bg-black/40 border border-white/10 rounded-xl p-3 outline-none focus:border-green-500 h-24"></textarea>
+                            <input id="rh-fecha" type="date" required class="w-full bg-black/40 border border-white/10 rounded-xl p-3 outline-none focus:border-green-500 text-gray-300">
+                            <button type="submit" id="btn-save-rrhh" class="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-xl font-bold mt-4 transition">Registrar Colaborador</button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Módulo: Reportes y Configuración Supabase -->
+                <section id="sec-reportes" class="app-section hidden">
+                    <div class="bg-blue-900/40 border border-blue-500/30 p-8 rounded-3xl">
+                        <h3 class="text-2xl font-bold text-white mb-2">Estado de Conexión</h3>
+                        <p class="text-gray-300 mb-6">Esta aplicación está diseñada para conectarse a Supabase.</p>
+                        <div class="bg-black/50 p-4 rounded-xl font-mono text-sm text-green-400">
+                            Status: <span id="db-status">Esperando credenciales en el código fuente...</span>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. CONFIGURACIÓN DE SUPABASE
+        // ==========================================
+        // IMPORTANTE: Cuando tengas tu cuenta de Supabase, reemplaza estos valores
+        const SUPABASE_URL = 'https://mcpscfblpvffqjloukiz.supabase.co/rest/v1/';
+        const SUPABASE_ANON_KEY = 'sb_publishable_o3qwqY82HaW2nzz56bk6NA_rpYx1k0z';
+        
+        let supabase = null;
+        let isConfigured = SUPABASE_URL !== 'https://mcpscfblpvffqjloukiz.supabase.co/rest/v1/';
+
+        if (isConfigured) {
+            // Inicializar el cliente real si las llaves fueron reemplazadas
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            document.getElementById('db-status').textContent = "Cliente Supabase Inicializado.";
+        }
+
+        // ==========================================
+        // 2. UI Y MODALES
+        // ==========================================
+        const modal = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+
+        function showModal(title, message, isError = false) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalTitle.className = isError ? 'text-2xl font-bold mb-2 text-red-400' : 'text-2xl font-bold mb-2 text-green-400';
+            modal.classList.replace('hidden-view', 'active-view');
+        }
+
+        document.getElementById('close-modal-btn').addEventListener('click', () => {
+            modal.classList.replace('active-view', 'hidden-view');
+        });
+
+        // ==========================================
+        // 3. FLUJO DE AUTENTICACIÓN (LOGIN)
+        // ==========================================
+        document.getElementById('google-login-btn').addEventListener('click', async () => {
+            if (!isConfigured) {
+                document.getElementById('auth-warning').classList.remove('hidden');
+                
+                // MODO DEMO: Si no hay credenciales, forzamos el acceso visual para que pruebes el diseño
+                setTimeout(() => {
+                    document.getElementById('login-view').classList.replace('active-view', 'hidden-view');
+                    setTimeout(() => document.getElementById('dashboard-view').classList.replace('hidden-view', 'active-view'), 300);
+                    renderMenu('admin');
+                }, 1000);
+                return;
+            }
+
+            // MODO REAL: Supabase Google OAuth
+            try {
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                });
+                if (error) throw error;
+            } catch (error) {
+                showModal('Error de Login', error.message, true);
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            if (isConfigured) await supabase.auth.signOut();
+            document.getElementById('dashboard-view').classList.replace('active-view', 'hidden-view');
+            setTimeout(() => document.getElementById('login-view').classList.replace('hidden-view', 'active-view'), 300);
+        });
+
+        // ==========================================
+        // 4. GUARDADO DE DATOS (INVENTARIO)
+        // ==========================================
+        document.getElementById('form-inventario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!isConfigured) {
+                showModal('Modo Demo', 'Los datos no se guardaron. Conecta Supabase en el código fuente para habilitar la persistencia.', true);
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-inv');
+            btn.textContent = "Enviando a Supabase...";
+
+            const datos_inventario = {
+                // Asumiendo que el usuario pegó UUIDs reales en los inputs
+                colocadora_id: document.getElementById('inv-colocadora').value || null,
+                tienda_id: document.getElementById('inv-tienda').value || null,
+                producto_id: document.getElementById('inv-producto').value || null,
+                cantidad: parseInt(document.getElementById('inv-cantidad').value)
+            };
+
+            try {
+                // Inserción Real en la tabla 'inventarios' de PostgreSQL via Supabase
+                const { data, error } = await supabase
+                    .from('inventarios')
+                    .insert([datos_inventario]);
+
+                if (error) throw error;
+                showModal('¡Inventario Guardado!', 'El registro se ha subido exitosamente a la base de datos de Supabase.');
+                e.target.reset();
+            } catch (error) {
+                showModal('Error de DB', error.message, true);
+            } finally {
+                btn.textContent = "Guardar en Supabase";
+            }
+        });
+
+        // ==========================================
+        // 5. SISTEMA DE MENÚS DINÁMICOS
+        // ==========================================
+        const menuConfig = {
+            admin: [
+                { id: 'sec-inventario', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2', label: 'Ingreso Inventario' },
+                { id: 'sec-rrhh', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z', label: 'Gestión RRHH' },
+                { id: 'sec-reportes', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', label: 'Reportes y DB' }
+            ],
+            colocadora: [
+                { id: 'sec-inventario', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2', label: 'Ingresar Inventario' }
+            ],
+            empresa: [
+                { id: 'sec-reportes', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7', label: 'Ver Reportes y KPIs' }
+            ]
+        };
+
+        const navMenu = document.getElementById('nav-menu');
+        document.getElementById('role-selector').addEventListener('change', (e) => renderMenu(e.target.value));
+        
+        function renderMenu(role) {
+            navMenu.innerHTML = '';
+            const items = menuConfig[role] || menuConfig.admin;
+            items.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `nav-item ${index === 0 ? 'active' : ''}`;
+                div.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg> ${item.label}`;
+                div.onclick = () => {
+                    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                    div.classList.add('active');
+                    showSection(item.id, item.label);
+                };
+                navMenu.appendChild(div);
+            });
+            if(items.length > 0) showSection(items[0].id, items[0].label);
+        }
+
+        function showSection(id, title) {
+            document.querySelectorAll('.app-section').forEach(sec => sec.classList.add('hidden'));
+            const target = document.getElementById(id);
+            if(target) {
+                target.classList.remove('hidden');
+                target.style.opacity = 0;
+                setTimeout(() => target.style.opacity = 1, 50);
+            }
+            document.getElementById('section-title').textContent = title;
+            document.getElementById('section-desc').textContent = `Módulo de ${title} activo.`;
+        }
+
+        // Partículas decorativas
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            let p = document.createElement('div');
+            p.className = 'particle';
+            p.style.width = p.style.height = (Math.random() * 3 + 1) + 'px';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDuration = (Math.random() * 10 + 5) + 's';
+            p.style.animationDelay = (Math.random() * 10) + 's';
+            particlesContainer.appendChild(p);
+        }
+    </script>
+</body>
+</html>
