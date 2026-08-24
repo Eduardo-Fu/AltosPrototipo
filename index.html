@@ -201,12 +201,12 @@
         // ==========================================
         // IMPORTANTE: Reemplaza estos valores con los de tu proyecto Supabase real
         // La URL debe ser la base (sin el /rest/v1/)
-        const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'TU_ANON_KEY';
+        const SUPABASE_URL = 'https://mcpscfblpvffqjloukiz.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcHNjZmJscHZmZnFqbG91a2l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1Mzk5NDcsImV4cCI6MjEwMzExNTk0N30.b-BYnY4xeWT8wvE0HCiqIqhTEeEJ41WrPjLo9C6B6z4';
         
         let supabase = null;
         // Comprobamos si las credenciales por defecto fueron cambiadas por el usuario
-        let isConfigured = !SUPABASE_URL.includes('TU_PROYECTO');
+        let isConfigured = !SUPABASE_URL.includes('mcpscfblpvffqjloukiz');
 
         if (isConfigured) {
             // Inicializar el cliente real si las llaves fueron reemplazadas
