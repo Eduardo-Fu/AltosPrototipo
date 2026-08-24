@@ -52,6 +52,8 @@
         .hidden-view { opacity: 0; pointer-events: none; position: absolute; transform: scale(0.95); z-index: -1; }
         .active-view { opacity: 1; pointer-events: all; position: relative; transform: scale(1); z-index: 10; }
         
+        .app-section { transition: opacity 0.3s ease-in-out; }
+
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
@@ -87,6 +89,7 @@
             </div>
         </div>
 
+        <!-- VISTA DE LOGIN -->
         <div id="login-view" class="view-transition active-view glass p-10 rounded-3xl w-full max-w-md flex flex-col items-center antigravity text-center">
             <div class="w-16 h-16 bg-gradient-to-tr from-purple-600 to-blue-500 rounded-full mb-6 flex items-center justify-center shadow-[0_0_20px_rgba(138,43,226,0.5)]">
                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -103,9 +106,10 @@
                 </svg>
                 <span id="login-text">Acceder al Sistema</span>
             </button>
-            <p id="auth-warning" class="text-xs text-yellow-500 mt-4 hidden">Necesitas configurar tus credenciales de Supabase en el código para iniciar sesión.</p>
+            <p id="auth-warning" class="text-xs text-yellow-500 mt-4 hidden">Modo de prueba activado. Configura tus credenciales de Supabase en el código para conexión real.</p>
         </div>
 
+        <!-- VISTA DE DASHBOARD -->
         <div id="dashboard-view" class="view-transition hidden-view w-full h-[90vh] flex flex-col md:flex-row gap-6">
             <aside class="glass rounded-3xl w-full md:w-72 p-6 flex flex-col antigravity-delayed-1 h-full z-20">
                 <div class="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
@@ -195,17 +199,22 @@
         // ==========================================
         // 1. CONFIGURACIÓN DE SUPABASE
         // ==========================================
-        // IMPORTANTE: Cuando tengas tu cuenta de Supabase, reemplaza estos valores
-        const SUPABASE_URL = 'https://mcpscfblpvffqjloukiz.supabase.co/rest/v1/';
-        const SUPABASE_ANON_KEY = 'sb_publishable_o3qwqY82HaW2nzz56bk6NA_rpYx1k0z';
+        // IMPORTANTE: Reemplaza estos valores con los de tu proyecto Supabase real
+        // La URL debe ser la base (sin el /rest/v1/)
+        const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'TU_ANON_KEY';
         
         let supabase = null;
-        let isConfigured = SUPABASE_URL !== 'https://mcpscfblpvffqjloukiz.supabase.co/rest/v1/';
+        // Comprobamos si las credenciales por defecto fueron cambiadas por el usuario
+        let isConfigured = !SUPABASE_URL.includes('TU_PROYECTO');
 
         if (isConfigured) {
             // Inicializar el cliente real si las llaves fueron reemplazadas
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            document.getElementById('db-status').textContent = "Cliente Supabase Inicializado.";
+            document.getElementById('db-status').textContent = "Cliente Supabase Inicializado Correctamente.";
+        } else {
+            document.getElementById('db-status').textContent = "Modo Demo Activo (Sin Conexión a Base de Datos).";
+            document.getElementById('db-status').classList.replace('text-green-400', 'text-yellow-400');
         }
 
         // ==========================================
@@ -214,11 +223,20 @@
         const modal = document.getElementById('custom-modal');
         const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
+        const modalIcon = document.getElementById('modal-icon');
 
         function showModal(title, message, isError = false) {
             modalTitle.textContent = title;
             modalMessage.textContent = message;
-            modalTitle.className = isError ? 'text-2xl font-bold mb-2 text-red-400' : 'text-2xl font-bold mb-2 text-green-400';
+            
+            if (isError) {
+                modalTitle.className = 'text-2xl font-bold mb-2 text-red-400';
+                modalIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>`; // Icono de X
+            } else {
+                modalTitle.className = 'text-2xl font-bold mb-2 text-green-400';
+                modalIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>`; // Icono de Check
+            }
+            
             modal.classList.replace('hidden-view', 'active-view');
         }
 
@@ -233,12 +251,15 @@
             if (!isConfigured) {
                 document.getElementById('auth-warning').classList.remove('hidden');
                 
-                // MODO DEMO: Si no hay credenciales, forzamos el acceso visual para que pruebes el diseño
+                // MODO DEMO: Simulación de inicio de sesión
+                document.getElementById('login-text').textContent = "Conectando...";
                 setTimeout(() => {
                     document.getElementById('login-view').classList.replace('active-view', 'hidden-view');
-                    setTimeout(() => document.getElementById('dashboard-view').classList.replace('hidden-view', 'active-view'), 300);
-                    renderMenu('admin');
-                }, 1000);
+                    setTimeout(() => {
+                        document.getElementById('dashboard-view').classList.replace('hidden-view', 'active-view');
+                        renderMenu('admin'); // Cargar menú por defecto
+                    }, 500);
+                }, 1500);
                 return;
             }
 
@@ -255,25 +276,30 @@
 
         document.getElementById('logout-btn').addEventListener('click', async () => {
             if (isConfigured) await supabase.auth.signOut();
+            
+            document.getElementById('login-text').textContent = "Acceder al Sistema";
             document.getElementById('dashboard-view').classList.replace('active-view', 'hidden-view');
-            setTimeout(() => document.getElementById('login-view').classList.replace('hidden-view', 'active-view'), 300);
+            setTimeout(() => document.getElementById('login-view').classList.replace('hidden-view', 'active-view'), 500);
         });
 
         // ==========================================
-        // 4. GUARDADO DE DATOS (INVENTARIO)
+        // 4. GUARDADO DE DATOS (INVENTARIO Y RRHH)
         // ==========================================
+        
+        // Módulo: Inventario
         document.getElementById('form-inventario').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!isConfigured) {
-                showModal('Modo Demo', 'Los datos no se guardaron. Conecta Supabase en el código fuente para habilitar la persistencia.', true);
+                showModal('Modo Demo', 'El inventario se simuló correctamente. Conecta Supabase para guardarlo en la base de datos.', false);
+                e.target.reset();
                 return;
             }
 
             const btn = document.getElementById('btn-save-inv');
+            const originalText = btn.textContent;
             btn.textContent = "Enviando a Supabase...";
 
             const datos_inventario = {
-                // Asumiendo que el usuario pegó UUIDs reales en los inputs
                 colocadora_id: document.getElementById('inv-colocadora').value || null,
                 tienda_id: document.getElementById('inv-tienda').value || null,
                 producto_id: document.getElementById('inv-producto').value || null,
@@ -281,23 +307,58 @@
             };
 
             try {
-                // Inserción Real en la tabla 'inventarios' de PostgreSQL via Supabase
                 const { data, error } = await supabase
                     .from('inventarios')
                     .insert([datos_inventario]);
 
                 if (error) throw error;
-                showModal('¡Inventario Guardado!', 'El registro se ha subido exitosamente a la base de datos de Supabase.');
+                showModal('¡Inventario Guardado!', 'El registro se ha subido exitosamente a la base de datos.');
                 e.target.reset();
             } catch (error) {
                 showModal('Error de DB', error.message, true);
             } finally {
-                btn.textContent = "Guardar en Supabase";
+                btn.textContent = originalText;
+            }
+        });
+
+        // Módulo: Recursos Humanos (Solución al fallo de recarga de página)
+        document.getElementById('form-rrhh-alta').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Evita que la página se recargue al enviar el form
+            
+            if (!isConfigured) {
+                showModal('Modo Demo', 'Colaborador registrado (Simulación).', false);
+                e.target.reset();
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-rrhh');
+            const originalText = btn.textContent;
+            btn.textContent = "Guardando...";
+
+            const datos_empleado = {
+                nombre: document.getElementById('rh-nombre').value,
+                dpi: document.getElementById('rh-dpi').value,
+                tiendas: document.getElementById('rh-tiendas').value,
+                fecha_ingreso: document.getElementById('rh-fecha').value
+            };
+
+            try {
+                const { data, error } = await supabase
+                    .from('empleados') // Asegúrate que esta tabla exista en tu DB
+                    .insert([datos_empleado]);
+
+                if (error) throw error;
+                showModal('¡Alta Exitosa!', 'El colaborador ha sido registrado en Supabase.');
+                e.target.reset();
+            } catch (error) {
+                showModal('Error al registrar', error.message, true);
+            } finally {
+                btn.textContent = originalText;
             }
         });
 
         // ==========================================
-        // 5. SISTEMA DE MENÚS DINÁMICOS
+        // 5. SISTEMA DE MENÚS DINÁMICOS Y NAVEGACIÓN
         // ==========================================
         const menuConfig = {
             admin: [
@@ -319,33 +380,49 @@
         function renderMenu(role) {
             navMenu.innerHTML = '';
             const items = menuConfig[role] || menuConfig.admin;
+            
             items.forEach((item, index) => {
                 const div = document.createElement('div');
                 div.className = `nav-item ${index === 0 ? 'active' : ''}`;
                 div.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg> ${item.label}`;
+                
                 div.onclick = () => {
                     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
                     div.classList.add('active');
                     showSection(item.id, item.label);
                 };
+                
                 navMenu.appendChild(div);
             });
-            if(items.length > 0) showSection(items[0].id, items[0].label);
+            
+            if(items.length > 0) {
+                // Forzar mostrar la primera sección al cambiar de rol
+                showSection(items[0].id, items[0].label);
+            }
         }
 
         function showSection(id, title) {
-            document.querySelectorAll('.app-section').forEach(sec => sec.classList.add('hidden'));
+            // Ocultar todas las secciones
+            document.querySelectorAll('.app-section').forEach(sec => {
+                sec.classList.add('hidden');
+                sec.style.opacity = 0;
+            });
+            
+            // Mostrar la seleccionada con pequeña transición
             const target = document.getElementById(id);
             if(target) {
                 target.classList.remove('hidden');
-                target.style.opacity = 0;
-                setTimeout(() => target.style.opacity = 1, 50);
+                // Pequeño delay para que la transición CSS surta efecto tras remover 'hidden'
+                setTimeout(() => target.style.opacity = 1, 30);
             }
+            
             document.getElementById('section-title').textContent = title;
             document.getElementById('section-desc').textContent = `Módulo de ${title} activo.`;
         }
 
-        // Partículas decorativas
+        // ==========================================
+        // 6. ANIMACIÓN DE PARTÍCULAS DE FONDO
+        // ==========================================
         const particlesContainer = document.getElementById('particles');
         for (let i = 0; i < 30; i++) {
             let p = document.createElement('div');
